@@ -6,6 +6,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IBrand extends Document {
     name: string;
     logo?: string;
+    isEnable?: boolean;
     description?: string;
     createdAt: Date;
 }
@@ -16,6 +17,10 @@ const brandSchema: Schema<IBrand> = new Schema(
         name: { type: String, required: true, unique: true },
         logo: { type: String },
         description: { type: String },
+        isEnable: {
+            type: Boolean,
+            default: true,
+        },
     },
     { timestamps: true }
 );

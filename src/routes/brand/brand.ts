@@ -25,6 +25,12 @@ router.patch(
     uploadBrandLogo,
     controller.update
 );
+router.patch(
+    "/enableDisableBrand/:brandId",
+    auth,
+    authorize("admin"),
+    controller.enableDisableBrand
+);
 router.delete("/:id", auth, authorize("admin"), controller.delete);
 
 export default router;

@@ -9,10 +9,16 @@ import { sendEmail } from "../util/sendMail";
 export class EnquiryController {
     create = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { carId, name, email, phone, message } = req.body;
+            const { typeData, price, carId, name, email, phone, message } =
+                req.body;
 
-            if (!name || !email || !phone)
+            if (!name || !email || !phone || !typeData)
                 return next(new ErrorHandle("All field required", 400));
+
+            if (typeData === "bidding" && !price)
+                return next(
+                    new ErrorHandle("Price required for type bidding", 404)
+                );
 
             const car: any = await Car.findById(carId).populate(
                 "brand",
@@ -20,13 +26,21 @@ export class EnquiryController {
             );
             if (!car) return next(new ErrorHandle("Car not found", 404));
 
-            const enquiry = await Enquiry.create({
+            const obj: any = {
+                typeData,
                 car: carId,
                 name,
                 email,
                 phone,
-                message,
-            });
+            };
+
+            if (typeData === "enquiry") {
+                obj.message = message;
+            } else {
+                obj.price = price;
+            }
+
+            const enquiry = await Enquiry.create(obj);
 
             const carImage = car.images?.length
                 ? `http://localhost:5000/uploads/cars/${car.images[0]}`
@@ -74,12 +88,12 @@ export class EnquiryController {
   </div>
 `;
 
-            await sendEmail(
-                process.env.ADMIN_EMAIL!,
-                emailSubject,
-                "",
-                emailHtml
-            );
+            // await sendEmail(
+            //     process.env.ADMIN_EMAIL!,
+            //     emailSubject,
+            //     "",
+            //     emailHtml
+            // );
 
             res.status(201).json({ status: true, data: enquiry });
         } catch (error) {
@@ -92,14 +106,22 @@ export class EnquiryController {
             const page = parseInt(req.query.page as string, 10) || 1;
             const limit = parseInt(req.query.limit as string, 10) || 10;
             const skip = (page - 1) * limit;
+            const { type } = req.query as any;
+
+            const obj: any = {};
+            if (type) {
+                obj.typeData = type;
+            }
+
+            console.log(type);
 
             const [enquiries, total] = await Promise.all([
-                Enquiry.find()
+                Enquiry.find(obj)
                     .populate("car", "brand modelName year price")
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit),
-                Enquiry.countDocuments(),
+                Enquiry.countDocuments(obj),
             ]);
 
             res.status(200).json({

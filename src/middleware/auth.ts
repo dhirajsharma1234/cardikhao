@@ -24,8 +24,8 @@ export const auth = async (req: any, res: Response, next: NextFunction) => {
         req.token = token;
 
         return next();
-    } catch (error) {
-        return next(error);
+    } catch (error: any) {
+        return next(new ErrorHandle(error.message, 401));
     }
 };
 

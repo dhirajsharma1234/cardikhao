@@ -6,6 +6,7 @@ import brandRoute from "./brand/brand";
 import carRoute from "./car/carRoute";
 import enquiryRoute from "./user/enquiry";
 import sellingRoute from "./brand/sell";
+
 const router = express.Router();
 
 router.use("/user", userRoute);

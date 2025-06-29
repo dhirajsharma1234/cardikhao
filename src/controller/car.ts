@@ -13,7 +13,9 @@ export class CarController {
                 modelName,
                 fuelType,
                 color,
+                bodyType,
                 condition,
+                city,
                 sortBy = "createdAt",
                 sortOrder = "desc",
                 search,
@@ -22,7 +24,9 @@ export class CarController {
             } = req.query;
 
             const query: any =
-                (req as any).user?.role === "admin" ? {} : { isApproved: true };
+                (req as any).user?.role === "admin"
+                    ? { isEnable: true }
+                    : { isApproved: true, isEnable: true };
 
             if (modelName)
                 query.modelName = {
@@ -39,7 +43,16 @@ export class CarController {
                     $regex: condition as string,
                     $options: "i",
                 };
-
+            if (bodyType)
+                query.bodyType = {
+                    $regex: bodyType as string,
+                    $options: "i",
+                };
+            if (city)
+                query.city = {
+                    $regex: city as string,
+                    $options: "i",
+                };
             if (search) {
                 query.$or = [
                     { modelName: { $regex: search as string, $options: "i" } },
@@ -83,12 +96,32 @@ export class CarController {
 
     getByBrand = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const cars = await Car.find({
-                brand: req.params.brandId,
-                isApproved: true,
-            }).populate("brand", "name logo");
+            const page = parseInt(req.query.page as string) || 1;
+            const limit = parseInt(req.query.limit as string) || 10;
+            const skip = (page - 1) * limit;
 
-            res.status(200).json(cars);
+            const [cars, total] = await Promise.all([
+                Car.find({
+                    brand: req.params.brandId,
+                    isEnable: true,
+                    isApproved: true,
+                })
+                    .skip(skip)
+                    .limit(limit)
+                    .populate("brand", "name logo"),
+                Car.countDocuments({
+                    brand: req.params.brandId,
+                    isApproved: true,
+                }),
+            ]);
+
+            res.status(200).json({
+                status: true,
+                cars,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+            });
         } catch (error) {
             next(error);
         }
@@ -96,7 +129,10 @@ export class CarController {
 
     getSingle = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const car = await Car.findById(req.params.id)
+            const car = await Car.findOne({
+                _id: req.params.id,
+                isEnable: true,
+            })
                 .populate("brand", "name logo")
                 .populate("addedBy", "name email");
 
@@ -127,7 +163,10 @@ export class CarController {
                 description,
                 isFeatured,
                 isSold,
+                bodyType,
+                kmRun,
                 condition,
+                city,
             } = req.body;
 
             // 🛡 Validate required fields
@@ -163,6 +202,9 @@ export class CarController {
                 isFeatured: isFeatured === "true",
                 isSold: isSold === "true",
                 condition,
+                bodyType,
+                kmRun,
+                city,
             };
 
             // 📦 Handle images
@@ -183,7 +225,10 @@ export class CarController {
 
     update = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const existing = await Car.findById(req.params.id);
+            const existing = await Car.findOne({
+                _id: req.params.id,
+                isEnable: true,
+            });
             if (!existing) return next(new ErrorHandle("Car not found", 404));
 
             const newImages = (req.files as Express.Multer.File[])?.map(
@@ -193,6 +238,9 @@ export class CarController {
                 // Delete old images
                 existing.images?.forEach((img) => deleteFile(img, "cars"));
                 req.body.images = newImages;
+            } else {
+                // If no new images uploaded, keep existing ones
+                req.body.images = existing.images;
             }
 
             const car = await Car.findByIdAndUpdate(req.params.id, req.body, {
@@ -208,6 +256,7 @@ export class CarController {
     delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const car = await Car.findByIdAndDelete(req.params.id);
+
             if (!car) return next(new ErrorHandle("Car not found", 400));
 
             car.images?.forEach((img) => deleteFile(img, "cars"));

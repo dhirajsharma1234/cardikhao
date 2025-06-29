@@ -11,6 +11,8 @@ export interface IEnquiry extends Document {
     message?: string;
     status: "pending" | "contacted" | "rejected";
     createdAt: Date;
+    typeData?: "enquiry" | "bidding";
+    price?: number;
 }
 
 // Define schema
@@ -24,6 +26,13 @@ const enquirySchema: Schema<IEnquiry> = new Schema({
         type: String,
         enum: ["pending", "contacted", "rejected"],
         default: "pending",
+    },
+    typeData: {
+        type: String,
+        enum: ["enquiry", "bidding"],
+    },
+    price: {
+        type: Number,
     },
     createdAt: { type: Date, default: Date.now },
 });

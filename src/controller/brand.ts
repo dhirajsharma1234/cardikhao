@@ -6,6 +6,7 @@ import { ErrorHandle } from "../util/Error";
 import path from "path";
 import fs from "fs/promises";
 import { deleteFile } from "../util/deleteFile";
+import Car from "../model/car";
 
 export class BrandController {
     getAll = async (req: Request, res: Response, next: NextFunction) => {
@@ -15,7 +16,7 @@ export class BrandController {
             const skip = (page - 1) * limit;
 
             const total = await Brand.countDocuments();
-            const brands = await Brand.find()
+            const brands = await Brand.find({})
                 .sort({ name: 1 })
                 .skip(skip)
                 .limit(limit);
@@ -141,6 +142,47 @@ export class BrandController {
             res.status(200).json({
                 status: true,
                 message: "Brand deleted successfully",
+            });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    enableDisableBrand = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { brandId } = req.params;
+            const { isEnable } = req.body;
+
+            // Step 1: Update brand's isEnable status
+            const updateBrand = await Brand.findByIdAndUpdate(
+                brandId,
+                { $set: { isEnable } },
+                { new: true }
+            );
+
+            if (!updateBrand) {
+                return next(
+                    new ErrorHandle("Brand not found or update failed", 400)
+                );
+            }
+
+            // Step 2: Update all cars under this brand
+            await Car.updateMany(
+                { brand: updateBrand._id },
+                { $set: { isEnable } }
+            );
+
+            // Step 3: Send success response
+            res.status(200).json({
+                status: true,
+                message: `Brand and all its cars have been ${
+                    isEnable ? "enabled" : "disabled"
+                } successfully.`,
+                brand: updateBrand,
             });
         } catch (error) {
             next(error);

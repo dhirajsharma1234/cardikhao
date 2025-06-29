@@ -131,10 +131,17 @@ export class AuthController {
 
             // 1. Cars
             const [totalCars, carsCurrent, carsPrevious] = await Promise.all([
-                Car.countDocuments(),
-                Car.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+                Car.countDocuments({ isEnable: true }),
                 Car.countDocuments({
-                    createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
+                    createdAt: { $gte: thirtyDaysAgo },
+                    isEnable: true,
+                }),
+                Car.countDocuments({
+                    createdAt: {
+                        $gte: sixtyDaysAgo,
+                        $lt: thirtyDaysAgo,
+                    },
+                    isEnable: true,
                 }),
             ]);
             const carGrowth = getPercentageChange(carsCurrent, carsPrevious);
@@ -182,12 +189,17 @@ export class AuthController {
             // 4. Brands
             const [totalBrands, brandsCurrent, brandsPrevious] =
                 await Promise.all([
-                    Brand.countDocuments(),
+                    Brand.countDocuments({ isEnable: true }),
                     Brand.countDocuments({
                         createdAt: { $gte: thirtyDaysAgo },
+                        isEnable: true,
                     }),
                     Brand.countDocuments({
-                        createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo },
+                        createdAt: {
+                            $gte: sixtyDaysAgo,
+                            $lt: thirtyDaysAgo,
+                        },
+                        isEnable: true,
                     }),
                 ]);
             const brandGrowth = getPercentageChange(

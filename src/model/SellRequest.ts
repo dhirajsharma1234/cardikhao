@@ -20,6 +20,7 @@ export interface ISellRequest extends Document {
     sellerPhone: string;
     status: "pending" | "approved" | "rejected";
     createdAt: Date;
+    bodyType?: string;
 }
 
 const sellRequestSchema: Schema<ISellRequest> = new Schema({
@@ -48,6 +49,20 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
         enum: ["pending", "approved", "rejected"],
         default: "pending",
         lowercase: true,
+    },
+    bodyType: {
+        type: String,
+        enum: [
+            "SEDAN",
+            "SUV",
+            "HATCHBACK",
+            "CONVERTIBLE",
+            "COUPE",
+            "PICKUP",
+            "VAN",
+            "WAGON",
+        ],
+        required: true,
     },
     condition: {
         type: String,

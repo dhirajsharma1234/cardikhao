@@ -7,7 +7,6 @@ import SellRequest from "../model/SellRequest";
 import { sendEmail } from "../util/sendMail";
 import { deleteFile } from "../util/deleteFile";
 import Brand from "../model/brand";
-import { modelNames } from "mongoose";
 
 export class SellRequestController {
     create = async (req: Request, res: any, next: NextFunction) => {
@@ -27,6 +26,7 @@ export class SellRequestController {
                 transmission,
                 color,
                 condition,
+                bodyType,
                 additionalInfo,
             } = req.body;
 
@@ -39,6 +39,7 @@ export class SellRequestController {
                 !sellerName ||
                 !sellerPhone ||
                 !sellerEmail ||
+                !bodyType ||
                 uploadedFiles.length === 0
             ) {
                 uploadedFiles.forEach((file) =>
@@ -80,6 +81,7 @@ export class SellRequestController {
                 modelName,
                 year,
                 expectedPrice,
+                bodyType,
                 mileage,
                 fuelType,
                 transmission,
@@ -191,17 +193,20 @@ export class SellRequestController {
                     condition: sellRequest.condition,
                     description: sellRequest.additionalInfo,
                     isApproved: true,
+                    bodyType: sellRequest.bodyType,
                 };
 
                 const car = new Car(carData);
                 await car.save();
 
-                const emailSubject = `Your Sell Request for ${sellRequest.model} has been approved`;
+                const emailSubject = `Your Sell Request for ${sellRequest.modelName} has been approved`;
                 const emailText = `
 Congratulations! Your sell request has been approved.
 
 Car Details:
-${(sellRequest.brand as any).name} ${sellRequest.model} (${sellRequest.year})
+${(sellRequest.brand as any).name} ${sellRequest.modelName} (${
+                    sellRequest.year
+                })
 Price: ₹${sellRequest.expectedPrice}
 
 Your car is now listed on our platform. You can view it on our website.

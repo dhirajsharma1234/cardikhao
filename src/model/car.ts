@@ -19,6 +19,10 @@ export interface ICar extends Document {
     condition: "new" | "used";
     createdAt: Date;
     isSold: boolean;
+    isEnable?: boolean;
+    bodyType: string;
+    kmRun?: number;
+    city?: string;
 }
 
 const carSchema: Schema<ICar> = new Schema(
@@ -51,6 +55,26 @@ const carSchema: Schema<ICar> = new Schema(
         isFeatured: { type: Boolean, default: false },
         createdAt: { type: Date, default: Date.now },
         isSold: { type: Boolean, default: false },
+        city: { type: String, trim: true, lowercase: true },
+        bodyType: {
+            type: String,
+            enum: [
+                "SEDAN",
+                "SUV",
+                "HATCHBACK",
+                "CONVERTIBLE",
+                "COUPE",
+                "PICKUP",
+                "VAN",
+                "WAGON",
+            ],
+            required: true,
+        },
+        kmRun: { type: Number },
+        isEnable: {
+            type: Boolean,
+            default: true,
+        },
     },
     { timestamps: true }
 );
