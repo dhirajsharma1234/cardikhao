@@ -4,6 +4,7 @@ import express from "express";
 import { createUploadMiddleware } from "../../services/multer";
 import { auth, authorize } from "../../middleware/auth";
 import { BrandController } from "../../controller/brand";
+import { brandModel } from "../../controller/model";
 
 const router = express.Router();
 const controller = new BrandController();
@@ -32,5 +33,11 @@ router.patch(
     controller.enableDisableBrand
 );
 router.delete("/:id", auth, authorize("admin"), controller.delete);
+
+//car models
+router.route("/model/:brandId").get(brandModel.getByBrandId);
+router.route("/model").post(auth, authorize("admin"), brandModel.create);
+router.route("/model/:id").patch(auth, authorize("admin"), brandModel.update);
+router.route("/model/:id").delete(auth, authorize("admin"), brandModel.delete);
 
 export default router;

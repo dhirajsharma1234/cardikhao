@@ -14,7 +14,13 @@ export interface IBrand extends Document {
 // Define schema
 const brandSchema: Schema<IBrand> = new Schema(
     {
-        name: { type: String, required: true, unique: true },
+        name: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+        },
         logo: { type: String },
         description: { type: String },
         isEnable: {

@@ -43,12 +43,15 @@ export class EnquiryController {
             const enquiry = await Enquiry.create(obj);
 
             const carImage = car.images?.length
-                ? `http://localhost:5000/uploads/cars/${car.images[0]}`
+                ? `http://localhost:8000/uploads/cars/${car.images[0]}`
                 : null;
 
             console.log(carImage);
 
-            const emailSubject = `🚗 New Enquiry for ${car.modelName}`;
+            const emailSubject =
+                typeData === "enquiry"
+                    ? `🚗 New Enquiry for ${car.modelName}`
+                    : `🚗 Car bidding for ${car.modelName}`;
 
             const emailHtml = `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
@@ -77,7 +80,9 @@ export class EnquiryController {
       <p><strong>Name:</strong> ${name}</p>
       <p><strong>Email:</strong> ${email}</p>
       <p><strong>Phone:</strong> ${phone}</p>
-      <p><strong>Message:</strong> ${message || "No message provided"}</p>
+      <p><strong>Message:</strong> ${
+          typeData === "enquiry" ? message || "No message provided" : price
+      }</p>
 
       <p style="margin-top: 30px;">Please follow up with this enquiry as soon as possible.</p>
     </div>
@@ -88,12 +93,12 @@ export class EnquiryController {
   </div>
 `;
 
-            // await sendEmail(
-            //     process.env.ADMIN_EMAIL!,
-            //     emailSubject,
-            //     "",
-            //     emailHtml
-            // );
+            await sendEmail(
+                process.env.ADMIN_EMAIL!,
+                emailSubject,
+                "",
+                emailHtml
+            );
 
             res.status(201).json({ status: true, data: enquiry });
         } catch (error) {

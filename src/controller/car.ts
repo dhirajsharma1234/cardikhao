@@ -5,6 +5,8 @@ import Car from "../model/car";
 import { ErrorHandle } from "../util/Error";
 import { deleteFile } from "../util/deleteFile";
 import Brand from "../model/brand";
+import { brandModel } from "./model";
+import { CarModel } from "../model/brandModel";
 
 export class CarController {
     getAll = async (req: Request, res: Response, next: NextFunction) => {
@@ -16,68 +18,144 @@ export class CarController {
                 bodyType,
                 condition,
                 city,
+                transmission,
                 sortBy = "createdAt",
                 sortOrder = "desc",
                 search,
+                brand, // ✅ brand as string (e.g. "bmw")
                 page = 1,
                 limit = 10,
             } = req.query;
 
-            const query: any =
-                (req as any).user?.role === "admin"
-                    ? { isEnable: true }
-                    : { isApproved: true, isEnable: true };
+            const isAdmin = (req as any).user?.role === "admin";
 
-            if (modelName)
-                query.modelName = {
-                    $regex: modelName as string,
-                    $options: "i",
-                };
+            const matchStage: any = {
+                isEnable: true,
+            };
 
+            if (!isAdmin) matchStage.isApproved = true;
+
+            // Optional filters
             if (fuelType)
-                query.fuelType = { $regex: fuelType as string, $options: "i" };
-
-            if (color) query.color = { $regex: color as string, $options: "i" };
-            if (condition)
-                query.condition = {
-                    $regex: condition as string,
-                    $options: "i",
-                };
+                matchStage.fuelType = new RegExp(fuelType as string, "i");
+            if (color) matchStage.color = new RegExp(color as string, "i");
             if (bodyType)
-                query.bodyType = {
-                    $regex: bodyType as string,
-                    $options: "i",
-                };
-            if (city)
-                query.city = {
-                    $regex: city as string,
-                    $options: "i",
-                };
-            if (search) {
-                query.$or = [
-                    { modelName: { $regex: search as string, $options: "i" } },
-                    { fuelType: { $regex: search as string, $options: "i" } },
-                    { color: { $regex: search as string, $options: "i" } },
-                    { condition: { $regex: search as string, $options: "i" } },
-                ];
-            }
-
-            const sortOptions: any = {};
-            sortOptions[sortBy as string] = sortOrder === "asc" ? 1 : -1;
+                matchStage.bodyType = new RegExp(bodyType as string, "i");
+            if (condition)
+                matchStage.condition = new RegExp(condition as string, "i");
+            if (city) matchStage.city = new RegExp(city as string, "i");
+            if (transmission)
+                matchStage.transmission = new RegExp(
+                    transmission as string,
+                    "i"
+                );
 
             const pageNumber = parseInt(page as string, 10);
             const limitNumber = parseInt(limit as string, 10);
             const skip = (pageNumber - 1) * limitNumber;
 
-            const [cars, total] = await Promise.all([
-                Car.find(query)
-                    .populate("brand", "name logo")
-                    .populate("addedBy", "name email")
-                    .sort(sortOptions)
-                    .skip(skip)
-                    .limit(limitNumber),
-                Car.countDocuments(query),
+            console.log("match stage");
+            console.log(matchStage);
+            console.log(req.query);
+
+            const pipeline: any[] = [
+                {
+                    $match: matchStage,
+                },
+                {
+                    $lookup: {
+                        from: "brands",
+                        localField: "brand",
+                        foreignField: "_id",
+                        as: "brand",
+                    },
+                },
+                {
+                    $unwind: {
+                        path: "$brand",
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "brandmodels",
+                        localField: "modelName",
+                        foreignField: "_id",
+                        as: "modelName",
+                    },
+                },
+                {
+                    $unwind: {
+                        path: "$modelName",
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+            ];
+
+            // ✅ Brand string filter after unwind
+            if (brand) {
+                pipeline.push({
+                    $match: {
+                        "brand.name": new RegExp(brand as string, "i"),
+                    },
+                });
+            }
+
+            // Search by modelName (string)
+            if (modelName) {
+                pipeline.push({
+                    $match: {
+                        "modelName.name": {
+                            $regex: modelName as string,
+                            $options: "i",
+                        },
+                    },
+                });
+            }
+
+            // General search (multiple fields)
+            if (search) {
+                const regex = new RegExp(search as string, "i");
+                pipeline.push({
+                    $match: {
+                        $or: [
+                            { "modelName.name": regex },
+                            { fuelType: regex },
+                            { color: regex },
+                            { condition: regex },
+                            { city: regex },
+                        ],
+                    },
+                });
+            }
+
+            // Count total
+            const countPipeline = [...pipeline, { $count: "total" }];
+
+            // Apply sorting, skip, and limit
+            pipeline.push(
+                {
+                    $sort: {
+                        [sortBy as string]: sortOrder === "asc" ? 1 : -1,
+                    },
+                },
+                {
+                    $skip: skip,
+                },
+                {
+                    $limit: limitNumber,
+                }
+            );
+
+            // Execute queries
+            const [cars, countResult] = await Promise.all([
+                Car.aggregate(pipeline),
+                Car.aggregate(countPipeline),
             ]);
+
+            // console.log(cars);
+
+            const total = countResult[0]?.total || 0;
 
             res.status(200).json({
                 status: true,
@@ -134,6 +212,7 @@ export class CarController {
                 isEnable: true,
             })
                 .populate("brand", "name logo")
+                .populate("modelName", "name")
                 .populate("addedBy", "name email");
 
             if (!car) return next(new ErrorHandle("Car not found", 400));
@@ -184,6 +263,18 @@ export class CarController {
                 if (files) files.forEach((f) => deleteFile(f.filename, "cars"));
                 console.log("file deleted!");
                 return next(new ErrorHandle("Invalid brand ID", 400));
+            }
+
+            //model name validation modelName is id
+            const modelExists = await CarModel.findOne({
+                brand: brand,
+                _id: modelName,
+            });
+            if (!modelExists) {
+                files.forEach((f) => deleteFile(f.filename, "cars"));
+                return next(
+                    new ErrorHandle("Model not found for this brand", 400)
+                );
             }
 
             // 🧠 Prepare car data

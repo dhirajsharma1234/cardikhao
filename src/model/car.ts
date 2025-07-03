@@ -4,7 +4,7 @@ import mongoose, { Document, Schema, Model } from "mongoose";
 
 export interface ICar extends Document {
     brand: mongoose.Types.ObjectId;
-    modelName: string; // changed here
+    modelName: mongoose.Types.ObjectId; // changed here
     year: number;
     price: number;
     mileage?: number;
@@ -28,7 +28,11 @@ export interface ICar extends Document {
 const carSchema: Schema<ICar> = new Schema(
     {
         brand: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
-        modelName: { type: String, required: true }, // changed here
+        modelName: {
+            type: Schema.Types.ObjectId,
+            ref: "BrandModel",
+            required: true,
+        }, // changed here
         condition: {
             type: String,
             enum: ["new", "used"],
