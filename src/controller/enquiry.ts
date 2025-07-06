@@ -43,7 +43,7 @@ export class EnquiryController {
             const enquiry = await Enquiry.create(obj);
 
             const carImage = car.images?.length
-                ? `http://localhost:8000/uploads/cars/${car.images[0]}`
+                ? `https://cardikhao-production.up.railway.app/uploads/cars/${car.images[0]}`
                 : null;
 
             console.log(carImage);
@@ -122,7 +122,14 @@ export class EnquiryController {
 
             const [enquiries, total] = await Promise.all([
                 Enquiry.find(obj)
-                    .populate("car", "brand modelName year price")
+                    .populate({
+                        path: "car",
+                        select: "brand modelName year price",
+                        populate: [
+                            { path: "brand", select: "name" },
+                            { path: "modelName", select: "name" },
+                        ],
+                    })
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit),

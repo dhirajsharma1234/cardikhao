@@ -22,6 +22,7 @@ export class CarController {
                 sortBy = "createdAt",
                 sortOrder = "desc",
                 search,
+                maxPrice,
                 brand, // ✅ brand as string (e.g. "bmw")
                 page = 1,
                 limit = 10,
@@ -49,6 +50,13 @@ export class CarController {
                     transmission as string,
                     "i"
                 );
+            // Price filter based on maxPrice
+            if (maxPrice) {
+                const maxPriceValue = parseInt(maxPrice as string, 10) * 100000;
+                matchStage.price = {
+                    $lte: maxPriceValue,
+                };
+            }
 
             const pageNumber = parseInt(page as string, 10);
             const limitNumber = parseInt(limit as string, 10);
@@ -174,16 +182,35 @@ export class CarController {
 
     getByBrand = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const { fuelType, color, bodyType, condition, city, transmission } =
+                req.query;
             const page = parseInt(req.query.page as string) || 1;
             const limit = parseInt(req.query.limit as string) || 10;
             const skip = (page - 1) * limit;
 
+            const matchStage: any = {
+                brand: req.params.brandId,
+                isEnable: true,
+                isApproved: true,
+            };
+
+            // Optional filters
+            if (fuelType)
+                matchStage.fuelType = new RegExp(fuelType as string, "i");
+            if (color) matchStage.color = new RegExp(color as string, "i");
+            if (bodyType)
+                matchStage.bodyType = new RegExp(bodyType as string, "i");
+            if (condition)
+                matchStage.condition = new RegExp(condition as string, "i");
+            if (city) matchStage.city = new RegExp(city as string, "i");
+            if (transmission)
+                matchStage.transmission = new RegExp(
+                    transmission as string,
+                    "i"
+                );
+
             const [cars, total] = await Promise.all([
-                Car.find({
-                    brand: req.params.brandId,
-                    isEnable: true,
-                    isApproved: true,
-                })
+                Car.find(matchStage)
                     .skip(skip)
                     .limit(limit)
                     .populate("brand", "name logo"),

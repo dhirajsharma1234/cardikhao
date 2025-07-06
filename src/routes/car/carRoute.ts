@@ -13,7 +13,7 @@ const uploadCarImages = createUploadMiddleware("cars").array("images", 5);
 
 // Public routes
 router.get("/all", carController.getAll); // filters: ?page=1&limit=10&fuelType=Petrol&modelName=Swift
-router.get("/brand/:brandId", carController.getByBrand);
+// router.get("/brand/:brandId", carController.getByBrand);
 router.get("/:id", carController.getSingle);
 
 // Admin-only routes

@@ -95,7 +95,8 @@ export class SellRequestController {
 
             // 📧 Send Email to Admin
             const imageUrl = `${
-                process.env.BASE_URL || "http://localhost:5000"
+                process.env.BASE_URL ||
+                "https://cardikhao-production.up.railway.app/"
             }/uploads/cars/${sellRequest.images[0]}`;
 
             const emailSubject = `New Sell Request for ${brandExists.name} ${modelName}`;
