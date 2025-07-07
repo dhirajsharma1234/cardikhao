@@ -30,6 +30,8 @@ export class SellRequestController {
                 additionalInfo,
             } = req.body;
 
+            console.log(req.body);
+
             // 🚫 Basic Field Validation
             if (
                 !brand ||
