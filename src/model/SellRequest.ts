@@ -31,7 +31,7 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
     mileage: { type: Number },
     fuelType: {
         type: String,
-        enum: ["Petrol", "Diesel", "Electric", "Hybrid", "CNG"],
+        enum: ["petrol", "diesel", "electric", "hybrid", "cng"],
     },
     transmission: {
         type: String,

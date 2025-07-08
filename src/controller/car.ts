@@ -127,8 +127,10 @@ export class CarController {
                 pipeline.push({
                     $match: {
                         $or: [
+                            { "brand.name": regex }, // ✅ Brand name
                             { "modelName.name": regex },
                             { fuelType: regex },
+                            { bodyType: regex },
                             { color: regex },
                             { condition: regex },
                             { city: regex },

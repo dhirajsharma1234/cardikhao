@@ -7,6 +7,8 @@ import SellRequest from "../model/SellRequest";
 import { sendEmail } from "../util/sendMail";
 import { deleteFile } from "../util/deleteFile";
 import Brand from "../model/brand";
+import { CarModel } from "../model/brandModel";
+import mongoose from "mongoose";
 
 export class SellRequestController {
     create = async (req: Request, res: any, next: NextFunction) => {
@@ -166,25 +168,54 @@ export class SellRequestController {
     };
 
     updateStatus = async (req: Request, res: Response, next: NextFunction) => {
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
         try {
             const { status } = req.body;
             const user = (req as any).user;
 
-            const sellRequest = await SellRequest.findByIdAndUpdate(
+            const sellRequest: any = await SellRequest.findByIdAndUpdate(
                 req.params.id,
                 { status },
-                { new: true }
+                { new: true, session }
             ).populate("brand", "name");
 
             if (!sellRequest) {
+                await session.abortTransaction();
+                session.endSession();
                 return next(new ErrorHandle("Sell request not found", 404));
             }
 
-            // If approved, auto-create car listing
+            console.log(sellRequest);
+
             if (status === "approved") {
+                const normalizedModelName = sellRequest.modelName
+                    .trim()
+                    .toLowerCase();
+
+                let model: any = await CarModel.findOne({
+                    brand: (sellRequest.brand as any)._id,
+                    $expr: {
+                        $eq: [{ $toLower: "$name" }, normalizedModelName],
+                    },
+                }).session(session);
+
+                if (!model) {
+                    model = await CarModel.create(
+                        [
+                            {
+                                brand: (sellRequest.brand as any)._id,
+                                name: sellRequest.modelName.trim(),
+                            },
+                        ],
+                        { session }
+                    ).then((res) => res[0]);
+                }
+
                 const carData = {
                     brand: (sellRequest.brand as any)._id,
-                    modelName: sellRequest.modelName,
+                    modelName: model._id,
                     year: sellRequest.year,
                     price: sellRequest.expectedPrice,
                     mileage: sellRequest.mileage,
@@ -200,7 +231,7 @@ export class SellRequestController {
                 };
 
                 const car = new Car(carData);
-                await car.save();
+                await car.save({ session });
 
                 const emailSubject = `Your Sell Request for ${sellRequest.modelName} has been approved`;
                 const emailText = `
@@ -213,17 +244,26 @@ ${(sellRequest.brand as any).name} ${sellRequest.modelName} (${
 Price: ₹${sellRequest.expectedPrice}
 
 Your car is now listed on our platform. You can view it on our website.
-                `;
+            `;
+
+                // Commit transaction before sending email
+                await session.commitTransaction();
+                session.endSession();
 
                 await sendEmail(
                     sellRequest.sellerEmail,
                     emailSubject,
                     emailText
                 );
+            } else {
+                await session.commitTransaction();
+                session.endSession();
             }
 
             res.status(200).json({ status: true, data: sellRequest });
         } catch (error) {
+            await session.abortTransaction();
+            session.endSession();
             next(error);
         }
     };
