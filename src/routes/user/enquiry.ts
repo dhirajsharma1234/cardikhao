@@ -16,4 +16,6 @@ router.patch(
     enquiryController.updateStatus
 );
 
+router.post("/contactUs", enquiryController.contactUs);
+
 export default router;

@@ -169,4 +169,136 @@ export class EnquiryController {
             next(error);
         }
     };
+
+    //contact us
+    contactUs = async (req: Request, res: any, next: NextFunction) => {
+        try {
+            const { name, email, phone, message } = req.body;
+
+            // Validate required fields
+            if (!name || !email || !phone) {
+                return next(
+                    new ErrorHandle(
+                        "Name, email and phone are required fields",
+                        400
+                    )
+                );
+            }
+
+            const emailSubject = `New Contact Form Submission - ${name}`;
+            const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Form Submission</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0;
+        }
+        .header {
+            background-color: #1e88e5;
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            padding: 25px;
+            background-color: #f9f9f9;
+        }
+        .details {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 12px;
+            color: #666;
+            background-color: #f5f5f5;
+            border-radius: 0 0 8px 8px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #1e88e5;
+        }
+        p {
+            margin: 10px 0;
+        }
+        strong {
+            color: #1e88e5;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background-color: #e0e0e0;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="margin: 0; font-size: 24px;">📩 New Contact Message</h1>
+    </div>
+    
+    <div class="content">
+        <div class="details">
+            <h2>Contact Details</h2>
+            <p><strong>Name:</strong> ${name}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Phone:</strong> ${phone}</p>
+            
+            <hr>
+            
+            <h2>Message</h2>
+            <p>${message || "No message provided"}</p>
+        </div>
+        
+        <p style="text-align: center;">
+            <a href="mailto:${email}" 
+               style="background-color: #1e88e5; 
+                      color: white; 
+                      padding: 10px 20px; 
+                      text-decoration: none; 
+                      border-radius: 4px;
+                      display: inline-block;">
+                Reply to ${name.split(" ")[0]}
+            </a>
+        </p>
+    </div>
+    
+    <div class="footer">
+        This message was sent from the contact form on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}
+    </div>
+</body>
+</html>
+`;
+
+            await sendEmail(
+                process.env.ADMIN_EMAIL!,
+                emailSubject,
+                "",
+                emailHtml
+            );
+
+            res.status(201).json({
+                status: true,
+                message:
+                    "Thank you for contacting us! We will get back to you soon.",
+            });
+        } catch (error) {
+            console.error("Error in contactUs controller:", error);
+            next(error);
+        }
+    };
 }
