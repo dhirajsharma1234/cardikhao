@@ -65,6 +65,7 @@ export class BrandController {
 
             res.status(201).json({ success: true, brand });
         } catch (error) {
+            if (req?.file) deleteFile(req?.file?.filename, "brands");
             next(error);
         }
     };
@@ -87,6 +88,7 @@ export class BrandController {
                         "../../uploads/brands",
                         brand.logo
                     );
+
                     try {
                         await fs.unlink(oldLogoPath);
                         console.log(`Deleted old logo: ${brand.logo}`);
