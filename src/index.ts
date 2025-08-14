@@ -8,12 +8,8 @@ import fs from "fs";
 const PORT = process.env.PORT || 8000;
 
 const sslOptions = {
-    key: fs.readFileSync(
-        "/etc/letsencrypt/live/api.gadidikhao.com/privkey.pem"
-    ),
-    cert: fs.readFileSync(
-        "/etc/letsencrypt/live/api.gadidikhao.com/fullchain.pem"
-    ),
+    key: fs.readFileSync("/etc/letsencrypt/live/gadidikhao.com/privkey.pem"),
+    cert: fs.readFileSync("/etc/letsencrypt/live/gadidikhao.com/fullchain.pem"),
 };
 
 https.createServer(sslOptions, app).listen(PORT, async () => {
