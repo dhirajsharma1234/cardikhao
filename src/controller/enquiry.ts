@@ -43,7 +43,7 @@ export class EnquiryController {
             const enquiry = await Enquiry.create(obj);
 
             const carImage = car.images?.length
-                ? `https://cardikhao-production.up.railway.app/uploads/cars/${car.images[0]}`
+                ? `https://api.gadidikhao.com/uploads/cars/${car.images[0]}`
                 : null;
 
             console.log(carImage);
