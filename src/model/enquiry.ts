@@ -17,7 +17,7 @@ export interface IEnquiry extends Document {
 
 // Define schema
 const enquirySchema: Schema<IEnquiry> = new Schema({
-    car: { type: Schema.Types.ObjectId, ref: "Car", required: true },
+    car: { type: Schema.Types.ObjectId, ref: "Car", required: false },
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String, required: true },
