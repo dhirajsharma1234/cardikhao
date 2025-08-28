@@ -4,7 +4,7 @@ import mongoose, { Document, Schema, Model } from "mongoose";
 
 export interface ISellRequest extends Document {
     brand: mongoose.Types.ObjectId;
-    modelName: string;
+    modelId: mongoose.Types.ObjectId;
     year: number;
     expectedPrice: number;
     mileage?: number;
@@ -25,7 +25,7 @@ export interface ISellRequest extends Document {
 
 const sellRequestSchema: Schema<ISellRequest> = new Schema({
     brand: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
-    modelName: { type: String, required: true },
+    modelId: { type: Schema.Types.ObjectId, ref: "BrandModel", required: true },
     year: { type: Number, required: true },
     expectedPrice: { type: Number, required: true },
     mileage: { type: Number },
@@ -33,10 +33,10 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
         type: String,
         enum: ["petrol", "diesel", "electric", "hybrid", "cng"],
     },
-    transmission: {
-        type: String,
-        enum: ["Automatic", "Manual"],
-    },
+    // transmission: {
+    //     type: String,
+    //     enum: ["Automatic", "Manual"],
+    // },
     color: { type: String },
     images: [{ type: String }],
     additionalInfo: { type: String },
@@ -50,26 +50,26 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
         default: "pending",
         lowercase: true,
     },
-    bodyType: {
-        type: String,
-        enum: [
-            "SEDAN",
-            "SUV",
-            "HATCHBACK",
-            "CONVERTIBLE",
-            "COUPE",
-            "PICKUP",
-            "VAN",
-            "WAGON",
-        ],
-        required: true,
-    },
-    condition: {
-        type: String,
-        enum: ["new", "used"],
-        required: true,
-        lowercase: true,
-    },
+    // bodyType: {
+    //     type: String,
+    //     enum: [
+    //         "SEDAN",
+    //         "SUV",
+    //         "HATCHBACK",
+    //         "CONVERTIBLE",
+    //         "COUPE",
+    //         "PICKUP",
+    //         "VAN",
+    //         "WAGON",
+    //     ],
+    //     required: true,
+    // },
+    // condition: {
+    //     type: String,
+    //     enum: ["new", "used"],
+    //     required: true,
+    //     lowercase: true,
+    // },
     createdAt: { type: Date, default: Date.now },
 });
 

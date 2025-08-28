@@ -36,7 +36,7 @@ const carSchema: Schema<ICar> = new Schema(
         condition: {
             type: String,
             enum: ["new", "used"],
-            required: true,
+            required: false,
             lowercase: true,
         },
         year: { type: Number, required: true },
@@ -50,6 +50,7 @@ const carSchema: Schema<ICar> = new Schema(
         transmission: {
             type: String,
             enum: ["Automatic", "Manual"],
+            required: false,
         },
         color: { type: String },
         images: [{ type: String }],
@@ -72,7 +73,7 @@ const carSchema: Schema<ICar> = new Schema(
                 "VAN",
                 "WAGON",
             ],
-            required: true,
+            required: false,
         },
         kmRun: { type: Number },
         isEnable: {

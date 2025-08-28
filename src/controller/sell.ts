@@ -20,15 +20,15 @@ export class SellRequestController {
                 sellerName,
                 sellerPhone,
                 sellerEmail,
-                modelName,
+                modelId,
                 year,
                 expectedPrice,
                 mileage,
                 fuelType,
-                transmission,
+                // transmission,
                 color,
-                condition,
-                bodyType,
+                // condition,
+                // bodyType,
                 additionalInfo,
             } = req.body;
 
@@ -37,13 +37,12 @@ export class SellRequestController {
             // 🚫 Basic Field Validation
             if (
                 !brand ||
-                !modelName ||
+                !modelId ||
                 !year ||
                 !expectedPrice ||
                 !sellerName ||
                 !sellerPhone ||
                 !sellerEmail ||
-                !bodyType ||
                 uploadedFiles.length === 0
             ) {
                 uploadedFiles.forEach((file) =>
@@ -51,7 +50,7 @@ export class SellRequestController {
                 );
                 return next(
                     new ErrorHandle(
-                        "Missing required fields: brand, modelName, year, expectedPrice, image, and seller details",
+                        "Missing required fields: brand, modelId, year, expectedPrice, image, and seller details",
                         400
                     )
                 );
@@ -65,9 +64,18 @@ export class SellRequestController {
                 return next(new ErrorHandle("Invalid brand", 400));
             }
 
+            //check model
+            const brandModel = await CarModel.findById(modelId);
+            if (!brandModel) {
+                uploadedFiles.forEach((file) =>
+                    deleteFile(file.filename, "cars")
+                );
+                return next(new ErrorHandle("Invalid model", 400));
+            }
+
             const requestExist = await SellRequest.findOne({
                 brand,
-                modelName,
+                modelId,
             });
 
             if (requestExist) {
@@ -82,15 +90,15 @@ export class SellRequestController {
                 sellerPhone,
                 sellerEmail,
                 brand,
-                modelName,
+                modelId,
                 year,
                 expectedPrice,
-                bodyType,
+                // bodyType,
                 mileage,
                 fuelType,
-                transmission,
+                // transmission,
                 color,
-                condition,
+                // condition,
                 additionalInfo,
                 images: uploadedFiles.map((f) => f.filename),
             };
@@ -102,18 +110,15 @@ export class SellRequestController {
                 process.env.BASE_URL || "https://api.gadidikhao.com/"
             }/uploads/cars/${sellRequest.images[0]}`;
 
-            const emailSubject = `New Sell Request for ${brandExists.name} ${modelName}`;
+            const emailSubject = `New Sell Request for ${brandExists.name} ${brandModel.name}`;
             const emailHtml = `
             <h2>New Car Sell Request Received</h2>
-            <p><strong>Car:</strong> ${
-                brandExists.name
-            } ${modelName} (${year})</p>
+            <p><strong>Car:</strong> ${brandExists.name} ${
+                brandModel.name
+            } (${year})</p>
             <p><strong>Expected Price:</strong> ₹${expectedPrice}</p>
             <p><strong>Mileage:</strong> ${mileage || "Not provided"}</p>
             <p><strong>Fuel Type:</strong> ${fuelType || "Not specified"}</p>
-            <p><strong>Transmission:</strong> ${
-                transmission || "Not specified"
-            }</p>
             <p><strong>Color:</strong> ${color || "Not specified"}</p>
             <img src="${imageUrl}" alt="Car Image" style="width:400px; margin-top:10px;" />
             <hr/>
@@ -188,58 +193,41 @@ export class SellRequestController {
 
             console.log(sellRequest);
 
+            //get model name
+            const modelName = await CarModel.findById(sellRequest.modelId);
+
+            if (!modelName)
+                return next(new ErrorHandle("Model not found", 404));
+
             if (status === "approved") {
-                const normalizedModelName = sellRequest.modelName
-                    .trim()
-                    .toLowerCase();
-
-                let model: any = await CarModel.findOne({
-                    brand: (sellRequest.brand as any)._id,
-                    $expr: {
-                        $eq: [{ $toLower: "$name" }, normalizedModelName],
-                    },
-                }).session(session);
-
-                if (!model) {
-                    model = await CarModel.create(
-                        [
-                            {
-                                brand: (sellRequest.brand as any)._id,
-                                name: sellRequest.modelName.trim(),
-                            },
-                        ],
-                        { session }
-                    ).then((res) => res[0]);
-                }
+                console.log("status is approves");
 
                 const carData = {
                     brand: (sellRequest.brand as any)._id,
-                    modelName: model._id,
+                    modelName: sellRequest.modelId,
                     year: sellRequest.year,
                     price: sellRequest.expectedPrice,
                     mileage: sellRequest.mileage,
                     fuelType: sellRequest.fuelType,
-                    transmission: sellRequest.transmission,
+                    // transmission: sellRequest.transmission,
                     color: sellRequest.color,
                     images: sellRequest.images,
                     addedBy: user.id,
-                    condition: sellRequest.condition,
+                    // condition: sellRequest.condition,
                     description: sellRequest.additionalInfo,
                     isApproved: true,
-                    bodyType: sellRequest.bodyType,
+                    // bodyType: sellRequest.bodyType,
                 };
 
                 const car = new Car(carData);
                 await car.save({ session });
 
-                const emailSubject = `Your Sell Request for ${sellRequest.modelName} has been approved`;
+                const emailSubject = `Your Sell Request for ${modelName.name} has been approved`;
                 const emailText = `
 Congratulations! Your sell request has been approved.
 
 Car Details:
-${(sellRequest.brand as any).name} ${sellRequest.modelName} (${
-                    sellRequest.year
-                })
+${(sellRequest.brand as any).name} ${modelName.name} (${sellRequest.year})
 Price: ₹${sellRequest.expectedPrice}
 
 Your car is now listed on our platform. You can view it on our website.
