@@ -22,12 +22,12 @@ export class SellRequestController {
                 sellerEmail,
                 modelId,
                 year,
-                expectedPrice,
-                mileage,
+                // expectedPrice,
+                // mileage,
                 fuelType,
                 // transmission,
                 color,
-                // condition,
+                condition,
                 // bodyType,
                 additionalInfo,
             } = req.body;
@@ -39,7 +39,6 @@ export class SellRequestController {
                 !brand ||
                 !modelId ||
                 !year ||
-                !expectedPrice ||
                 !sellerName ||
                 !sellerPhone ||
                 !sellerEmail ||
@@ -73,17 +72,17 @@ export class SellRequestController {
                 return next(new ErrorHandle("Invalid model", 400));
             }
 
-            const requestExist = await SellRequest.findOne({
-                brand,
-                modelId,
-            });
+            // const requestExist = await SellRequest.findOne({
+            //     brand,
+            //     modelId,
+            // });
 
-            if (requestExist) {
-                uploadedFiles.forEach((file) =>
-                    deleteFile(file.filename, "cars")
-                );
-                return next(new ErrorHandle("Request already sent", 400));
-            }
+            // if (requestExist) {
+            //     uploadedFiles.forEach((file) =>
+            //         deleteFile(file.filename, "cars")
+            //     );
+            //     return next(new ErrorHandle("Request already sent", 400));
+            // }
 
             const sellRequestData = {
                 sellerName,
@@ -92,13 +91,13 @@ export class SellRequestController {
                 brand,
                 modelId,
                 year,
-                expectedPrice,
+                // expectedPrice,
                 // bodyType,
-                mileage,
+                // mileage,
                 fuelType,
                 // transmission,
                 color,
-                // condition,
+                condition,
                 additionalInfo,
                 images: uploadedFiles.map((f) => f.filename),
             };
@@ -116,8 +115,6 @@ export class SellRequestController {
             <p><strong>Car:</strong> ${brandExists.name} ${
                 brandModel.name
             } (${year})</p>
-            <p><strong>Expected Price:</strong> ₹${expectedPrice}</p>
-            <p><strong>Mileage:</strong> ${mileage || "Not provided"}</p>
             <p><strong>Fuel Type:</strong> ${fuelType || "Not specified"}</p>
             <p><strong>Color:</strong> ${color || "Not specified"}</p>
             <img src="${imageUrl}" alt="Car Image" style="width:400px; margin-top:10px;" />
@@ -173,57 +170,66 @@ export class SellRequestController {
 
     updateStatus = async (req: Request, res: Response, next: NextFunction) => {
         const session = await mongoose.startSession();
-        session.startTransaction();
 
         try {
-            const { status } = req.body;
-            const user = (req as any).user;
+            await session.withTransaction(async () => {
+                const { status } = req.body;
+                const user = (req as any).user;
 
-            const sellRequest: any = await SellRequest.findByIdAndUpdate(
-                req.params.id,
-                { status },
-                { new: true, session }
-            ).populate("brand", "name");
+                // 1. Fetch request first
+                const sellRequest: any = await SellRequest.findById(
+                    req.params.id
+                )
+                    .populate("brand", "name")
+                    .session(session);
 
-            if (!sellRequest) {
-                await session.abortTransaction();
-                session.endSession();
-                return next(new ErrorHandle("Sell request not found", 404));
-            }
+                if (!sellRequest) {
+                    throw new ErrorHandle("Sell request not found", 404);
+                }
 
-            console.log(sellRequest);
+                // 2. Prevent update if already approved/rejected
+                if (["approved", "rejected"].includes(sellRequest.status)) {
+                    throw new ErrorHandle("Request already updated.", 400);
+                }
 
-            //get model name
-            const modelName = await CarModel.findById(sellRequest.modelId);
+                // 3. Update status
+                sellRequest.status = status;
+                await sellRequest.save({ session });
 
-            if (!modelName)
-                return next(new ErrorHandle("Model not found", 404));
+                // 4. Get model
+                const modelName = await CarModel.findById(
+                    sellRequest.modelId
+                ).session(session);
+                if (!modelName) {
+                    throw new ErrorHandle("Model not found", 404);
+                }
 
-            if (status === "approved") {
-                console.log("status is approves");
+                // 5. If approved, create Car entry
+                if (status === "approved") {
+                    const carData = {
+                        brand: (sellRequest.brand as any)._id,
+                        modelName: sellRequest.modelId,
+                        year: sellRequest.year,
+                        price: sellRequest.expectedPrice,
+                        mileage: sellRequest.mileage,
+                        fuelType: sellRequest.fuelType,
+                        color: sellRequest.color,
+                        images: sellRequest.images,
+                        addedBy: user.id,
+                        condition: sellRequest.condition,
+                        description: sellRequest.additionalInfo,
+                        isApproved: true,
+                    };
 
-                const carData = {
-                    brand: (sellRequest.brand as any)._id,
-                    modelName: sellRequest.modelId,
-                    year: sellRequest.year,
-                    price: sellRequest.expectedPrice,
-                    mileage: sellRequest.mileage,
-                    fuelType: sellRequest.fuelType,
-                    // transmission: sellRequest.transmission,
-                    color: sellRequest.color,
-                    images: sellRequest.images,
-                    addedBy: user.id,
-                    // condition: sellRequest.condition,
-                    description: sellRequest.additionalInfo,
-                    isApproved: true,
-                    // bodyType: sellRequest.bodyType,
-                };
+                    const car = new Car(carData);
+                    await car.save({ session });
 
-                const car = new Car(carData);
-                await car.save({ session });
-
-                const emailSubject = `Your Sell Request for ${modelName.name} has been approved`;
-                const emailText = `
+                    // Defer email sending until AFTER transaction is committed
+                    process.nextTick(() => {
+                        sendEmail(
+                            sellRequest.sellerEmail,
+                            `Your Sell Request for ${modelName.name} has been approved`,
+                            `
 Congratulations! Your sell request has been approved.
 
 Car Details:
@@ -231,25 +237,20 @@ ${(sellRequest.brand as any).name} ${modelName.name} (${sellRequest.year})
 Price: ₹${sellRequest.expectedPrice}
 
 Your car is now listed on our platform. You can view it on our website.
-            `;
+            `
+                        );
+                    });
+                }
 
-                // Commit transaction before sending email
-                await session.commitTransaction();
-                session.endSession();
+                // ✅ Transaction will be committed automatically here
+            });
 
-                await sendEmail(
-                    sellRequest.sellerEmail,
-                    emailSubject,
-                    emailText
-                );
-            } else {
-                await session.commitTransaction();
-                session.endSession();
-            }
-
-            res.status(200).json({ status: true, data: sellRequest });
+            session.endSession();
+            res.status(200).json({
+                status: true,
+                message: "Status updated successfully",
+            });
         } catch (error) {
-            await session.abortTransaction();
             session.endSession();
             next(error);
         }

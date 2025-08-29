@@ -27,8 +27,8 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
     brand: { type: Schema.Types.ObjectId, ref: "Brand", required: true },
     modelId: { type: Schema.Types.ObjectId, ref: "BrandModel", required: true },
     year: { type: Number, required: true },
-    expectedPrice: { type: Number, required: true },
-    mileage: { type: Number },
+    // expectedPrice: { type: Number, required: true },
+    // mileage: { type: Number },
     fuelType: {
         type: String,
         enum: ["petrol", "diesel", "electric", "hybrid", "cng"],
@@ -64,12 +64,12 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
     //     ],
     //     required: true,
     // },
-    // condition: {
-    //     type: String,
-    //     enum: ["new", "used"],
-    //     required: true,
-    //     lowercase: true,
-    // },
+    condition: {
+        type: String,
+        enum: ["new", "used", "1st", "2nd", "3rd", "4th", "5th or more"],
+        required: true,
+        lowercase: true,
+    },
     createdAt: { type: Date, default: Date.now },
 });
 

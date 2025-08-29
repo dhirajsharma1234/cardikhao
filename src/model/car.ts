@@ -35,13 +35,13 @@ const carSchema: Schema<ICar> = new Schema(
         }, // changed here
         condition: {
             type: String,
-            enum: ["new", "used"],
+            enum: ["new", "used", "1st", "2nd", "3rd", "4th", "5th or more"],
             required: false,
             lowercase: true,
         },
         year: { type: Number, required: true },
-        price: { type: Number, required: true },
-        mileage: { type: Number },
+        price: { type: Number, required: false },
+        mileage: { type: Number, required: false },
         fuelType: {
             type: String,
             enum: ["petrol", "diesel", "electric", "hybrid", "cng"],
