@@ -17,7 +17,7 @@ export class BrandController {
 
             const total = await Brand.countDocuments();
             const brands = await Brand.find({})
-                .sort({ name: 1 })
+                .sort({ createdAt: 1 })
                 .skip(skip)
                 .limit(limit);
 
