@@ -12,7 +12,7 @@ import mongoose from "mongoose";
 
 export class SellRequestController {
     create = async (req: Request, res: any, next: NextFunction) => {
-        const uploadedFiles = (req.files as Express.Multer.File[]) || [];
+        // const uploadedFiles = (req.files as Express.Multer.File[]) || [];
 
         try {
             const {
@@ -41,12 +41,12 @@ export class SellRequestController {
                 !year ||
                 !sellerName ||
                 !sellerPhone ||
-                !sellerEmail ||
-                uploadedFiles.length === 0
+                !sellerEmail
+                // uploadedFiles.length === 0
             ) {
-                uploadedFiles.forEach((file) =>
-                    deleteFile(file.filename, "cars")
-                );
+                // uploadedFiles.forEach((file) =>
+                //     deleteFile(file.filename, "cars")
+                // );
                 return next(
                     new ErrorHandle(
                         "Missing required fields: brand, modelId, year, expectedPrice, image, and seller details",
@@ -57,18 +57,18 @@ export class SellRequestController {
 
             const brandExists = await Brand.findById(brand);
             if (!brandExists) {
-                uploadedFiles.forEach((file) =>
-                    deleteFile(file.filename, "cars")
-                );
+                // uploadedFiles.forEach((file) =>
+                //     deleteFile(file.filename, "cars")
+                // );
                 return next(new ErrorHandle("Invalid brand", 400));
             }
 
             //check model
             const brandModel = await CarModel.findById(modelId);
             if (!brandModel) {
-                uploadedFiles.forEach((file) =>
-                    deleteFile(file.filename, "cars")
-                );
+                // uploadedFiles.forEach((file) =>
+                //     deleteFile(file.filename, "cars")
+                // );
                 return next(new ErrorHandle("Invalid model", 400));
             }
 
@@ -99,15 +99,15 @@ export class SellRequestController {
                 color,
                 condition,
                 additionalInfo,
-                images: uploadedFiles.map((f) => f.filename),
+                // images: uploadedFiles.map((f) => f.filename),
             };
 
             const sellRequest: any = await SellRequest.create(sellRequestData);
 
             // 📧 Send Email to Admin
-            const imageUrl = `${
-                process.env.BASE_URL || "https://api.gadidikhao.com/"
-            }/uploads/cars/${sellRequest.images[0]}`;
+            // const imageUrl = `${
+            //     process.env.BASE_URL || "https://api.gadidikhao.com/"
+            // }/uploads/cars/${sellRequest.images[0]}`;
 
             const emailSubject = `New Sell Request for ${brandExists.name} ${brandModel.name}`;
             const emailHtml = `
@@ -117,7 +117,6 @@ export class SellRequestController {
             } (${year})</p>
             <p><strong>Fuel Type:</strong> ${fuelType || "Not specified"}</p>
             <p><strong>Color:</strong> ${color || "Not specified"}</p>
-            <img src="${imageUrl}" alt="Car Image" style="width:400px; margin-top:10px;" />
             <hr/>
             <h3>Seller Details:</h3>
             <p><strong>Name:</strong> ${sellerName}</p>
@@ -136,7 +135,7 @@ export class SellRequestController {
             return res.status(201).json({ status: true, data: sellRequest });
         } catch (error) {
             // ❌ Cleanup files on error
-            uploadedFiles.forEach((file) => deleteFile(file.filename, "cars"));
+            // uploadedFiles.forEach((file) => deleteFile(file.filename, "cars"));
             return next(error);
         }
     };

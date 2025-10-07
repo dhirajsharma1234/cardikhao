@@ -38,7 +38,7 @@ const sellRequestSchema: Schema<ISellRequest> = new Schema({
     //     enum: ["Automatic", "Manual"],
     // },
     color: { type: String },
-    images: [{ type: String }],
+    // images: [{ type: String }],
     additionalInfo: { type: String },
     // user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     sellerName: { type: String, required: true },

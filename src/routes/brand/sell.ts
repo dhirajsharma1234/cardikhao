@@ -10,7 +10,8 @@ const sellRequestController = new SellRequestController();
 
 const uploadCarImages = createUploadMiddleware("cars").array("images", 5);
 
-router.post("/", uploadCarImages, sellRequestController.create);
+// router.post("/", uploadCarImages, sellRequestController.create);
+router.post("/", sellRequestController.create);
 router.get("/", auth, authorize("admin"), sellRequestController.getAll);
 router.patch(
     "/:id/status",
